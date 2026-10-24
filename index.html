@@ -138,7 +138,7 @@
     </header>
 
     <form class="search" id="search-form">
-      <input id="city-input" type="search" placeholder="Busca una ciudad…" autocomplete="off" aria-label="Nombre de la ciudad" value="Tokyo">
+      <input id="city-input" type="search" placeholder="Busca una ciudad…" autocomplete="off" aria-label="Nombre de la ciudad" value="Montcada i Reixac">
       <button id="search-button" type="submit">Buscar</button>
     </form>
 
@@ -147,7 +147,7 @@
     <section class="hero" aria-live="polite">
       <div class="hero-top">
         <div>
-          <h1 class="location" id="location">Tokio, Japón</h1>
+          <h1 class="location" id="location">Montcada i Reixac, España</h1>
           <div class="date" id="date">Cargando hora local…</div>
         </div>
         <div class="weather-icon" id="current-icon" aria-hidden="true"></div>
@@ -162,12 +162,15 @@
     <div class="section-heading"><h2>Pronóstico de 5 días</h2><span id="forecast-label">Vista diaria</span></div>
     <section class="forecast" id="forecast" aria-label="Pronóstico de cinco días"></section>
 
-    <footer>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a> · No requiere clave de API</footer>
+    <footer>
+      <div>Diseñado y creado por José Antonio Romero</div>
+      <div>© 2026 · Datos de <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a> · No requiere clave de API</div>
+    </footer>
   </main>
 
   <script>
     const fallback = {
-      name: "Tokio", country: "Japón", timezone: "Asia/Tokyo",
+      name: "Montcada i Reixac", country: "España", timezone: "Europe/Madrid",
       current: { temperature_2m: 18, apparent_temperature: 17, relative_humidity_2m: 61, wind_speed_10m: 12, weather_code: 2 },
       daily: {
         time: ["2026-10-24","2026-10-25","2026-10-26","2026-10-27","2026-10-28"],
@@ -226,7 +229,7 @@
       if (!response.ok) throw new Error("El servicio meteorológico no está disponible");
       return { ...await response.json(), name: place.name, country: place.country };
     }
-    let currentCity = "Tokyo";
+    let currentCity = "Montcada i Reixac";
     let refreshInFlight = false;
 
     async function search(city, { silent = false } = {}) {
@@ -244,7 +247,7 @@
         if (!silent) render(fallback);
         $("status").textContent = silent
           ? `No se pudo actualizar el tiempo. Se conservarán los datos anteriores.`
-          : `${error.message}. Se mostrará el pronóstico guardado de Tokio.`;
+          : `${error.message}. Se mostrará el pronóstico guardado de Montcada i Reixac.`;
         $("status").className = "status error";
       } finally {
         refreshInFlight = false;
