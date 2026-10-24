@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f5f7fb">
-  <title>Weatherly — Pronóstico local</title>
+  <title>Tiempo Real — Pronóstico local</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -209,7 +209,7 @@
         const [label, type] = labelFor(d.weather_code[i]);
         return `<article class="day-card" title="${label}"><span class="day-name">${dayName(date, i)}</span><div class="day-icon">${icon(type)}</div><div><span class="high">${Math.round(d.temperature_2m_max[i])}°</span><span class="low">${Math.round(d.temperature_2m_min[i])}°</span></div><div class="rain">💧 ${d.precipitation_probability_max[i]}%</div></article>`;
       }).join("");
-      $("updated").textContent = data === fallback ? "Mostrando pronóstico guardado" : "Actualizado ahora";
+      $("updated").textContent = data === fallback ? "Pronóstico guardado · actualización cada 60 s" : "Actualizado ahora · cada 60 s";
     }
 
     async function geocode(city) {
@@ -226,22 +226,42 @@
       if (!response.ok) throw new Error("El servicio meteorológico no está disponible");
       return { ...await response.json(), name: place.name, country: place.country };
     }
-    async function search(city) {
+    let currentCity = "Tokyo";
+    let refreshInFlight = false;
+
+    async function search(city, { silent = false } = {}) {
+      if (refreshInFlight) return;
+      refreshInFlight = true;
       $("search-button").disabled = true;
-      $("status").textContent = `Buscando ${city}…`;
-      $("status").className = "status";
+      if (!silent) {
+        $("status").textContent = `Buscando ${city}…`;
+        $("status").className = "status";
+      }
       try {
         render(await fetchWeather(city));
         $("status").textContent = "";
       } catch (error) {
-        render(fallback);
-        $("status").textContent = `${error.message}. Se mostrará el pronóstico guardado de Tokio.`;
+        if (!silent) render(fallback);
+        $("status").textContent = silent
+          ? `No se pudo actualizar el tiempo. Se conservarán los datos anteriores.`
+          : `${error.message}. Se mostrará el pronóstico guardado de Tokio.`;
         $("status").className = "status error";
-      } finally { $("search-button").disabled = false; }
+      } finally {
+        refreshInFlight = false;
+        $("search-button").disabled = false;
+      }
     }
-    $("search-form").addEventListener("submit", (event) => { event.preventDefault(); const city = $("city-input").value.trim(); if (city) search(city); });
+    $("search-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const city = $("city-input").value.trim();
+      if (city) {
+        currentCity = city;
+        search(currentCity);
+      }
+    });
     render(fallback);
-    search("Tokyo");
+    search(currentCity);
+    setInterval(() => search(currentCity, { silent: true }), 60_000);
   </script>
 </body>
 </html>
