@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7fb">
+  <title>Weatherly — Pronóstico local</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f7fb;
+      --surface: rgba(255, 255, 255, .78);
+      --surface-strong: #fff;
+      --text: #172033;
+      --muted: #68758a;
+      --line: rgba(25, 40, 70, .1);
+      --accent: #3265d5;
+      --accent-soft: #e8efff;
+      --shadow: 0 20px 60px rgba(54, 80, 130, .13);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101521;
+        --surface: rgba(27, 35, 53, .8);
+        --surface-strong: #1b2335;
+        --text: #eef3ff;
+        --muted: #a4aec2;
+        --line: rgba(236, 242, 255, .1);
+        --accent: #8fb1ff;
+        --accent-soft: #24345d;
+        --shadow: 0 20px 60px rgba(0, 0, 0, .25);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      margin: 0;
+      padding: 32px 18px 52px;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 8% 4%, rgba(255, 205, 112, .2), transparent 28%),
+        radial-gradient(circle at 95% 10%, rgba(95, 170, 255, .2), transparent 32%),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .shell { width: min(100%, 720px); margin: 0 auto; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 30px; }
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 800; letter-spacing: -.03em; }
+    .brand-mark { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 13px; background: linear-gradient(145deg, #ffce68, #ff9e5c); box-shadow: 0 8px 18px rgba(255, 163, 84, .28); }
+    .brand-mark svg { width: 23px; height: 23px; color: #fff; }
+    .updated { color: var(--muted); font-size: 12px; }
+
+    .search { display: flex; gap: 9px; margin-bottom: 18px; }
+    .search input {
+      min-width: 0;
+      flex: 1;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 13px 15px;
+      outline: none;
+      color: var(--text);
+      background: var(--surface);
+      font: inherit;
+      box-shadow: 0 4px 18px rgba(50, 80, 120, .04);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .search input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 15%, transparent); }
+    button { border: 0; cursor: pointer; font: inherit; }
+    .search button { padding: 0 19px; border-radius: 14px; color: #fff; background: var(--accent); font-weight: 700; box-shadow: 0 8px 20px rgba(50, 101, 213, .22); }
+    .search button:disabled { cursor: wait; opacity: .65; }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      min-height: 267px;
+      margin-bottom: 16px;
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: 25px;
+      background: linear-gradient(135deg, rgba(255,255,255,.82), rgba(224, 236, 255, .62));
+      box-shadow: var(--shadow);
+    }
+    @media (prefers-color-scheme: dark) {
+      .hero { background: linear-gradient(135deg, rgba(44, 58, 88, .85), rgba(27, 51, 83, .78)); }
+    }
+    .hero::after { content: ""; position: absolute; width: 260px; height: 260px; right: -84px; bottom: -126px; border-radius: 50%; background: rgba(255, 210, 111, .23); }
+    .hero-top { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .location { margin: 0; font-size: 25px; letter-spacing: -.04em; }
+    .date { margin-top: 3px; color: var(--muted); font-size: 13px; }
+    .weather-icon { width: 76px; height: 76px; padding: 13px; border-radius: 25px; background: rgba(255, 255, 255, .34); }
+    .temperature-row { position: relative; z-index: 1; display: flex; align-items: center; gap: 15px; margin-top: 20px; }
+    .temperature { font-size: clamp(64px, 15vw, 92px); font-weight: 800; letter-spacing: -.09em; line-height: .95; }
+    .unit { align-self: flex-start; margin-top: 8px; color: var(--muted); font-size: 19px; font-weight: 600; }
+    .condition { position: relative; z-index: 1; margin: 18px 0 0; font-size: 16px; font-weight: 700; }
+    .details { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 6px; color: var(--muted); font-size: 13px; }
+    .status { min-height: 20px; margin: 0 3px 13px; color: var(--muted); font-size: 12px; }
+    .status.error { color: #d66b4e; }
+
+    .section-heading { display: flex; align-items: center; justify-content: space-between; margin: 25px 3px 11px; }
+    h2 { margin: 0; font-size: 17px; letter-spacing: -.02em; }
+    .section-heading span { color: var(--muted); font-size: 12px; }
+    .forecast { display: grid; grid-template-columns: repeat(5, 1fr); gap: 9px; }
+    .day-card { min-width: 0; padding: 15px 9px; border: 1px solid var(--line); border-radius: 17px; text-align: center; background: var(--surface); box-shadow: 0 8px 24px rgba(50, 70, 110, .05); }
+    .day-name { display: block; overflow: hidden; color: var(--muted); font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .day-icon { width: 37px; height: 37px; margin: 12px auto 9px; }
+    .high { font-weight: 800; }
+    .low { margin-left: 4px; color: var(--muted); }
+    .rain { margin-top: 8px; color: var(--accent); font-size: 11px; }
+    footer { margin-top: 25px; color: var(--muted); font-size: 11px; text-align: center; }
+    footer a { color: inherit; }
+    @media (max-width: 510px) {
+      body { padding-top: 20px; }
+      .topbar { margin-bottom: 22px; }
+      .updated { display: none; }
+      .hero { padding: 22px; }
+      .forecast { gap: 6px; }
+      .day-card { padding: 13px 5px; }
+      .day-icon { width: 31px; height: 31px; }
+      .low { display: block; margin: 1px 0 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        </span>
+        <span>Weatherly</span>
+      </div>
+      <span class="updated" id="updated">Pronóstico local en vivo</span>
+    </header>
+
+    <form class="search" id="search-form">
+      <input id="city-input" type="search" placeholder="Busca una ciudad…" autocomplete="off" aria-label="Nombre de la ciudad" value="Tokyo">
+      <button id="search-button" type="submit">Buscar</button>
+    </form>
+
+    <p class="status" id="status" role="status"></p>
+
+    <section class="hero" aria-live="polite">
+      <div class="hero-top">
+        <div>
+          <h1 class="location" id="location">Tokio, Japón</h1>
+          <div class="date" id="date">Cargando hora local…</div>
+        </div>
+        <div class="weather-icon" id="current-icon" aria-hidden="true"></div>
+      </div>
+      <div class="temperature-row">
+        <div class="temperature" id="temperature">—</div><span class="unit">°C</span>
+      </div>
+      <p class="condition" id="condition">Obteniendo condiciones actuales…</p>
+      <div class="details"><span id="feels">Sensación de —</span><span id="wind">Viento —</span><span id="humidity">Humedad —</span></div>
+    </section>
+
+    <div class="section-heading"><h2>Pronóstico de 5 días</h2><span id="forecast-label">Vista diaria</span></div>
+    <section class="forecast" id="forecast" aria-label="Pronóstico de cinco días"></section>
+
+    <footer>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a> · No requiere clave de API</footer>
+  </main>
+
+  <script>
+    const fallback = {
+      name: "Tokio", country: "Japón", timezone: "Asia/Tokyo",
+      current: { temperature_2m: 18, apparent_temperature: 17, relative_humidity_2m: 61, wind_speed_10m: 12, weather_code: 2 },
+      daily: {
+        time: ["2026-10-24","2026-10-25","2026-10-26","2026-10-27","2026-10-28"],
+        weather_code: [2, 3, 61, 1, 80], temperature_2m_max: [21, 20, 19, 22, 18],
+        temperature_2m_min: [15, 16, 14, 15, 13], precipitation_probability_max: [12, 35, 62, 10, 45]
+      }
+    };
+    const weatherLabels = {
+      0: ["Cielo despejado", "sun"], 1: ["Mayormente despejado", "sun"], 2: ["Parcialmente nublado", "cloud-sun"], 3: ["Nublado", "cloud"],
+      45: ["Niebla", "fog"], 48: ["Niebla helada", "fog"], 51: ["Llovizna ligera", "rain"], 53: ["Llovizna", "rain"], 55: ["Llovizna intensa", "rain"],
+      61: ["Lluvia ligera", "rain"], 63: ["Lluvia", "rain"], 65: ["Lluvia intensa", "rain"], 71: ["Nieve ligera", "snow"], 73: ["Nieve", "snow"], 75: ["Nieve intensa", "snow"],
+      80: ["Chubascos ligeros", "rain"], 81: ["Chubascos", "rain"], 82: ["Chubascos intensos", "rain"], 95: ["Tormenta eléctrica", "storm"], 96: ["Tormenta", "storm"], 99: ["Tormenta", "storm"]
+    };
+    const $ = (id) => document.getElementById(id);
+    const icon = (type) => {
+      const common = 'viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"';
+      const sun = '<circle cx="24" cy="24" r="8"/><path d="M24 4v6M24 38v6M4 24h6M38 24h6M9.9 9.9l4.2 4.2M33.9 33.9l4.2 4.2M38.1 9.9l-4.2 4.2M14.1 33.9l-4.2 4.2"/>';
+      const cloud = '<path d="M14 34h22a8 8 0 0 0 0-16 12 12 0 0 0-23-1 8.5 8.5 0 0 0 1 17Z"/>';
+      const rain = cloud + '<path d="m18 39-2 4M27 39l-2 4M36 39l-2 4"/>';
+      const snow = cloud + '<path d="M18 40v5M15.5 42.5h5M30 40v5M27.5 42.5h5"/>';
+      const fog = '<path d="M9 19h30M6 27h36M11 35h26"/>';
+      const body = type === "sun" ? sun : type === "cloud" || type === "cloud-sun" ? (type === "cloud-sun" ? sun + '<path d="M16 35h21a7 7 0 0 0 0-14 10 10 0 0 0-19-1"/>' : cloud) : type === "snow" ? snow : type === "fog" ? fog : type === "rain" || type === "storm" ? rain : sun;
+      return `<svg ${common} aria-hidden="true">${body}</svg>`;
+    };
+    const labelFor = (code) => weatherLabels[code] || ["Condiciones variables", "cloud"];
+    const dayName = (date, index) => index === 0 ? "Hoy" : new Intl.DateTimeFormat("es", { weekday: "short" }).format(new Date(`${date}T12:00:00`));
+
+    function render(data) {
+      const c = data.current, d = data.daily, [condition, iconType] = labelFor(c.weather_code);
+      $("location").textContent = `${data.name}${data.country ? `, ${data.country}` : ""}`;
+      $("date").textContent = new Intl.DateTimeFormat("es", { weekday: "long", month: "long", day: "numeric", timeZone: data.timezone || "UTC" }).format(new Date());
+      $("temperature").textContent = Math.round(c.temperature_2m);
+      $("condition").textContent = condition;
+      $("current-icon").innerHTML = icon(iconType);
+      $("feels").textContent = `Sensación de ${Math.round(c.apparent_temperature)}°`;
+      $("wind").textContent = `Viento ${Math.round(c.wind_speed_10m)} km/h`;
+      $("humidity").textContent = `Humedad ${Math.round(c.relative_humidity_2m)}%`;
+      $("forecast").innerHTML = d.time.slice(0, 5).map((date, i) => {
+        const [label, type] = labelFor(d.weather_code[i]);
+        return `<article class="day-card" title="${label}"><span class="day-name">${dayName(date, i)}</span><div class="day-icon">${icon(type)}</div><div><span class="high">${Math.round(d.temperature_2m_max[i])}°</span><span class="low">${Math.round(d.temperature_2m_min[i])}°</span></div><div class="rain">💧 ${d.precipitation_probability_max[i]}%</div></article>`;
+      }).join("");
+      $("updated").textContent = data === fallback ? "Mostrando pronóstico guardado" : "Actualizado ahora";
+    }
+
+    async function geocode(city) {
+      const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=es&format=json`);
+      if (!response.ok) throw new Error("No se pudo encontrar esa ciudad");
+      const result = await response.json();
+      if (!result.results?.length) throw new Error("Ciudad no encontrada");
+      return result.results[0];
+    }
+    async function fetchWeather(city) {
+      const place = await geocode(city);
+      const params = new URLSearchParams({ latitude: place.latitude, longitude: place.longitude, timezone: "auto", forecast_days: 5, current: "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m", daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max" });
+      const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+      if (!response.ok) throw new Error("El servicio meteorológico no está disponible");
+      return { ...await response.json(), name: place.name, country: place.country };
+    }
+    async function search(city) {
+      $("search-button").disabled = true;
+      $("status").textContent = `Buscando ${city}…`;
+      $("status").className = "status";
+      try {
+        render(await fetchWeather(city));
+        $("status").textContent = "";
+      } catch (error) {
+        render(fallback);
+        $("status").textContent = `${error.message}. Se mostrará el pronóstico guardado de Tokio.`;
+        $("status").className = "status error";
+      } finally { $("search-button").disabled = false; }
+    }
+    $("search-form").addEventListener("submit", (event) => { event.preventDefault(); const city = $("city-input").value.trim(); if (city) search(city); });
+    render(fallback);
+    search("Tokyo");
+  </script>
+</body>
+</html>
